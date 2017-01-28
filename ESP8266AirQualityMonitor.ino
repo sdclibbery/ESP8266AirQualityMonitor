@@ -18,16 +18,16 @@ int waitToTurnOff = 40;
 int waitForNext= 9680;
 
 // sampling
-int sampleSize = 15;
-RunningMedian samples = RunningMedian(sampleSize);
+int numSamples = 15;
+RunningMedian samples = RunningMedian(numSamples);
+int millisBetweenPostingStats = 3000;
+float millisAtLastSensorRead;
 
-int interval = 3000;
-float lastReading ;
 void setup(){
    Serial.begin(9600);
    connectWifi();
    pinMode(ledPower,OUTPUT);
-   lastReading = millis();
+   millisAtLastSensorRead = millis();
 }
 
 void loop(){
@@ -39,13 +39,13 @@ void loop(){
   digitalWrite(ledPower, HIGH); // turn the LED off
   int dustDigital = readDigital - baseDigital;
   samples.add(dustDigital);
-  if (millis() > lastReading + interval) {
+  if (millis() > millisAtLastSensorRead + millisBetweenPostingStats) {
     Serial.println("");
     float dustVoltage = samples.getAverage() * ADC_REF / ADC_MAX;
     String report = String("dustVoltage=")+dustVoltage;
     Serial.println(report);
-    logData(dustVoltage);
-    lastReading = millis();
+    postReadingToStatHat(dustVoltage);
+    millisAtLastSensorRead = millis();
   }
   delayMicroseconds(waitForNext);
 }
@@ -69,7 +69,7 @@ void connectWifi() {
   Serial.println(WiFi.localIP());
 }
 
-void logData(float value) {
+void postReadingToStatHat(float value) {
    String data = "stat=";
    data += statName;
    data += "&email=12.hhc.air.quality.monitor@gmail.com&value=";
